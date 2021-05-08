@@ -1,46 +1,61 @@
-
 <?php
 
 $input = json_decode($_POST["query"], true);
 $query = $input["query"];
 $page = $input["page"];
 
+$res = [];
 
+
+$q = explode( " ", $query);
 
 include('conn.php'); 
 $mydb = new db(); // สร้าง object ใหม่ , class db()
 
 $conn = $mydb->connect();
 
+// จัดการลูป
 
-echo '<div>';
-$COUNT= $conn->prepare("SELECT COUNT(*)as ttt FROM invoice ");
+$dText = "";
+foreach($q as $key => $value)
+{
+    if( $key == 0 )
+        $dText .= "WHERE";
+    if($key > 0 )
+        $dText .= " AND ";
+
+        $dText .= 
+        "
+            CONCAT(name, ' ', organization, ' ', title, ' ') LIKE '%". $value ."%'
+        ";
+}
+
+
+$COUNT= $conn->prepare("
+
+SELECT COUNT(*)as ttt FROM invoice {$dText} 
+
+
+");
 $COUNT->execute();
 $rec = $COUNT->fetch(PDO::FETCH_ASSOC);
-$ttt = $rec['ttt'];
+$ttt = $rec['ttt'];//จำนวนแถวข้อมูล
 
 $rpp = 10; // limit
-$startPage = ( $page - 1 ) * $rpp; 
+$startPage = ( $page - 1 ) * $rpp; //หาค่า limit เริ่มต้น
 
 
-$ttp = ceil($ttt/$rpp);
+$ttp = ceil($ttt/$rpp);//หาจำนวนหน้า page
 
 
 
 //รับค่า Query จากหน้า index.php 
-if(isset($query))
+if(!empty($query))
 {
 // ค้นหาข้อมูลใน database ที่ตรงกับ input 
-$q = $query;
 	
-$results = $conn->prepare("SELECT * FROM invoice WHERE email LIKE '%" . $q . "%'
-OR name LIKE '%".$q."%'
-OR invoice_id LIKE '%".$q."%'
-OR title LIKE '%".$q."%'
-OR address LIKE '%".$q."%'
-OR organization LIKE '%".$q."%'
-OR company_format LIKE '%".$q."%'
-OR branch LIKE '%".$q."%'
+$results = $conn->prepare("SELECT * FROM invoice {$dText}
+
 LIMIT {$startPage},{$rpp};
 ");
 
@@ -54,32 +69,12 @@ else
 }
 //แสดงข้อมูล column database
 $results->execute();
-echo'<table  id="main">
-<thead>
-  <tr>
-    <th colspan = "2" >ชื่อ</th>
-    
-  </tr>
-</thead>   
- <tbody id="result">';
-while($row = $results->fetch(PDO::FETCH_ASSOC))
-{
 
-     echo '<tr>' . 
-    '<td>'. $row['name'] . '</td>' 
-		."<td ><button onclick='send(".$row['invoice_id'].");'type='button'  name='butsave' id='show' >
-			<i class='fas fa-plus'></i></button>
-		</td>"	.
-    '</tr>'.
-    '<tr  id="invoiceBody'.$row['invoice_id'].'"style="display:none" bgcolor="#FFFF99">
-			<td colspan = "2" id ="invoiceBody'.$row['invoice_id'].' bgcolor="#FFFF99"">
-			</td>
-	</tr>';
+$res["result"] = $results->fetchAll(PDO::FETCH_ASSOC);
+$res["page"] = $ttp;
+$res["currentPage"] = $page;
 
-} 
-echo'</tbody>
-</table>';
+exit( json_encode( $res ) );
 
- json_decode($ttp);
 
 ?>

@@ -6,90 +6,144 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootpag/1.0.7/jquery.bootpag.min.js"></script>
+  
+  
+  
   <script type="text/javascript">
     $(document).ready(function() {
 
       load_data();
 
-      function load_data(query = "", page = 1) {
-
-        var data = {};
-        data["query"] = query;
-        data["page"] = page;
-
-
-        var query = JSON.stringify(data);
-
-
-        $.ajax({
-          url: "name.php",
-          method: "POST",
-          data: {
-            "query": query
-          },
-          success: function(data) {
-            $('#result').html(data);
-          }
-
-        });
-
-      }
       //สร้าง function รับค่า input
       $('#search_text').keyup(function() {
-        var search = $(this).val();
-        if (search != '') {
-          load_data(search);
-        } else {
-          load_data();
-        }
+
+          var search = $(this).val();
+          if (search != '') {
+
+            load_data(search);
+
+          } else {
+
+            load_data();
+
+          }
       });
+    });
 
+    //function กำหนด page
+    function createPagination(current, page) {
 
-   
-    $('#page-selection').bootpag({
-        total: 20,
-        page: 5,
+      // แก้ไข การเรียกซ้ำซ้อน
+      $("#page-selection").unbind();
+
+      $('#page-selection').bootpag({
+
+        total: page,
+        page: current,
         maxVisible: 6,
         leaps: false,
-        next: 'next',
-        prev: null,
+        next: '>>>',
+        prev: '<<<'
+
       }).on('page', function(event, num) {
 
-        // ajax
-        $.ajax({
-          url:"name.php",
-          type: "POST"
-        })
+        var search_text = $("#search_text").val();
+
         console.log(num);
 
-        load_data("", num);
-        
-        });
-      });
-      function send(id) {
+        load_data(search_text, num);
 
-var x = document.getElementById("invoiceBody" + id);
-// ajax
-$.ajax({
-  url: "data_name.php",
-  type: "POST",
-  data: 'id=' + id,
-  success: function(data) {
-    if (x.style.display === "none") {
-      x.style.display = "block";
-      $("#invoiceBody" + id).html(data)
-    } else {
-      x.style.display = "none";
+      });
     }
 
-  }
-});
+    function load_data(query = "", page = 1) {
 
-}
+      var data = {};
+      data["query"] = query;
+      data["page"] = page;
+
+      var query = JSON.stringify(data);
+
+      $.ajax({
+
+        url: "name.php",
+        method: "POST",
+        async: false,// function จะทำงานเมือสมบูรแล้ว     
+        data: {
+
+          "query": query
+
+        },
+        dataType: "json",
+        success: function(res) {
+
+          var result = res.result;
+
+          var html = "";
+          result.forEach(ele => {
+            
+            html += "<tr>" +
+              "<td width='100%' >" + ele.name + "</td>" +
+              "<td ><button onclick='send(" + ele.invoice_id + ");' type='button'  name='butsave' id='show' >" +
+              "<i class='fas fa-plus'></i></button>" +
+              "</td>" +
+              "</tr>" +
+              "<tr id='invoiceBody" + ele.invoice_id + "' style='display:none' bgcolor='#FFFF99'>" +
+              "<td colspan = '2' id ='invoiceBody" + ele.invoice_id + "' bgcolor='#FFFF99'>" +
+              "</td></tr>";
+          });
+
+          $("#result").html(html);
+
+          // load button
+          createPagination(res.currentPage, res.page);
+
+        }
+      });
+    }
+
+    //function แสดงค่าตัว  invoice_item 
+    function send(id) {
+
+      var x = document.getElementById("invoiceBody" + id);
+      
+      $.ajax({
+
+        url: "data_name.php",
+        type: "POST",
+        data: 'id=' + id,
+        dataType:'json',
+        success: function(data) {
+          console.log(data);
+            var id = data.res;
+            var html = "";
+       
+            
+          if (x.style.display == "none") {
+            x.style.display = "block";
+            id.forEach(ele1 => {
+             
+             html +=  "<br> invoice_id: " + ele1.invoice_id + " <br>" +
+    "description: " + ele1.description + " <br>" +
+        "price: " +ele1.price+ "<br>" +
+        "vat: " +  ele1.vat + "<br>" +
+        "before_vat: " + ele1.before_vat +"<br>" +
+        "total: " + ele1.total + "<br>--------------------------------------------------<br>";
+
+            });
+
+            $("#invoiceBody" + id).html(html)
+          } else {
+            x.style.display = "none";
+
+          }
+        }
+      });
+    }
   </script>
 
   <style>
@@ -100,32 +154,26 @@ $.ajax({
       padding: 8px;
 
     }
-  
   </style>
 </head>
 
-<body >
+<body>
   </br>
-  
+
   <div class="container">
-  <div>
+    <div class="container">
 
 
-    <input type="text" name="search_text" id="search_text" placeholder="Search " size="40" style="background-color:#F0FFFF;">
+      <input type="text" name="search_text" id="search_text" placeholder="Search " size="30" style="background-color:#F0FFFF;">
 
-  </div>
-
-
-
+    </div>
 
 
 
-
- 
-  
-  
-  <div id="result"style="padding-top:10px"></div>
-  <div id="page-selection"></div>
+    <div  style="padding-top:20px"><table width="30%">
+    <thead><tr><th colspan = '2'>ชื่อ</th></tr></thesd><tbody id="result"></tbody></table>
+    </div>
+    <div class="container" id="page-selection"></div>
   </div>
 
 </body>
